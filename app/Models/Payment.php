@@ -20,4 +20,9 @@ class Payment extends Model
     {
         return $this->belongsTo(Student::class);
     }
+
+    protected $casts = [
+    'paid_at' => 'datetime',
+];
+
 }

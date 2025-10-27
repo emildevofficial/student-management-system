@@ -45,4 +45,7 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    //superadmin@example.com
+    //Secret123!
 }
