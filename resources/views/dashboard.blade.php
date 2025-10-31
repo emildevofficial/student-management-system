@@ -32,28 +32,24 @@
 
     {{-- CHARTS --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {{-- Enrollment Chart --}}
+        {{-- Enrollments --}}
         <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
                     <i class="fa fa-chart-line text-blue-500"></i> Monthly Enrollments
                 </h3>
             </div>
-            <div class="h-64">
-                <canvas id="enrollmentChart"></canvas>
-            </div>
+            <div class="h-64"><canvas id="enrollmentChart"></canvas></div>
         </div>
 
-        {{-- Revenue Chart --}}
+        {{-- Revenue --}}
         <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
                     <i class="fa fa-coins text-amber-500"></i> Monthly Revenue
                 </h3>
             </div>
-            <div class="h-64">
-                <canvas id="revenueChart"></canvas>
-            </div>
+            <div class="h-64"><canvas id="revenueChart"></canvas></div>
         </div>
     </div>
 
@@ -92,40 +88,51 @@
                         <td class="py-3 text-gray-600">{{ $payment->created_at->format('M d, Y') }}</td>
                     </tr>
                     @empty
-                    <tr>
-                        <td colspan="4" class="text-center py-6 text-gray-500">No recent payments found.</td>
-                    </tr>
+                    <tr><td colspan="4" class="text-center py-6 text-gray-500">No recent payments found.</td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </div>
-
 </div>
 
-{{-- CHART.JS --}}
+{{-- CHARTS --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const ctx1 = document.getElementById('enrollmentChart');
     const ctx2 = document.getElementById('revenueChart');
 
-    // Enrollment Chart
+    const months = @json($months);
+    const enrollments = @json($enrollmentData);
+    const revenues = @json($revenueData);
+    const colors = @json($revenueColors);
+
+    // === Enrollment Chart (deduplicated) ===
+    const uniqueEnrollMonths = [];
+    const uniqueEnrollData = [];
+
+    months.forEach((m, i) => {
+        if (!uniqueEnrollMonths.includes(m)) {
+            uniqueEnrollMonths.push(m);
+            uniqueEnrollData.push(enrollments[i]);
+        }
+    });
+
     new Chart(ctx1, {
         type: 'line',
         data: {
-            labels: @json($months),
+            labels: uniqueEnrollMonths,
             datasets: [{
                 label: 'Enrollments',
-                data: @json($enrollmentData),
+                data: uniqueEnrollData,
                 borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                backgroundColor: 'rgba(59,130,246,0.1)',
                 fill: true,
                 tension: 0.4,
                 borderWidth: 2,
                 pointBackgroundColor: '#3b82f6',
                 pointBorderColor: '#ffffff',
-                pointBorderWidth: 2,
                 pointRadius: 4,
                 pointHoverRadius: 6
             }]
@@ -134,48 +141,36 @@ document.addEventListener('DOMContentLoaded', () => {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    },
-                    border: {
-                        dash: [2, 4]
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: { grid: { display: false } }
             },
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    titleColor: '#1f2937',
-                    bodyColor: '#1f2937',
-                    borderColor: '#e5e7eb',
-                    borderWidth: 1,
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }
-            }
+            plugins: { legend: { display: false } }
         }
     });
 
-    // Revenue Chart
+    // === Revenue Chart (deduplicated) ===
+    const uniqueRevMonths = [];
+    const uniqueRevenues = [];
+    const uniqueColors = [];
+
+    months.forEach((m, i) => {
+        if (!uniqueRevMonths.includes(m)) {
+            uniqueRevMonths.push(m);
+            uniqueRevenues.push(revenues[i]);
+            uniqueColors.push(colors[i]);
+        }
+    });
+
     new Chart(ctx2, {
         type: 'bar',
         data: {
-            labels: @json($months),
+            labels: uniqueRevMonths,
             datasets: [{
                 label: 'Revenue ($)',
-                data: @json($revenueData),
-                backgroundColor: 'rgba(245, 158, 11, 0.7)',
-                borderColor: 'rgba(245, 158, 11, 1)',
-                borderWidth: 1,
+                data: uniqueRevenues,
+                backgroundColor: uniqueColors,
+                borderColor: '#f59e0b',
+                borderWidth: 1.5,
                 borderRadius: 6,
                 borderSkipped: false,
             }]
@@ -184,34 +179,10 @@ document.addEventListener('DOMContentLoaded', () => {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    },
-                    border: {
-                        dash: [2, 4]
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: { grid: { display: false } }
             },
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    titleColor: '#1f2937',
-                    bodyColor: '#1f2937',
-                    borderColor: '#e5e7eb',
-                    borderWidth: 1,
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }
-            }
+            plugins: { legend: { display: false } }
         }
     });
 });
